@@ -5070,29 +5070,82 @@ module.exports = {
   \*****************************/
 /***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
 
-/**
- * First we will load all of this project's JavaScript dependencies which
- * includes React and other helpers. It's a great starting point while
- * building robust, powerful web applications using React + Laravel.
- */
-
+function _createForOfIteratorHelper(r, e) { var t = "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (!t) { if (Array.isArray(r) || (t = _unsupportedIterableToArray(r)) || e && r && "number" == typeof r.length) { t && (r = t); var _n = 0, F = function F() {}; return { s: F, n: function n() { return _n >= r.length ? { done: !0 } : { done: !1, value: r[_n++] }; }, e: function e(r) { throw r; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var o, a = !0, u = !1; return { s: function s() { t = t.call(r); }, n: function n() { var r = t.next(); return a = r.done, r; }, e: function e(r) { u = !0, o = r; }, f: function f() { try { a || null == t["return"] || t["return"](); } finally { if (u) throw o; } } }; }
+function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
+function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
 __webpack_require__(/*! ./bootstrap */ "./resources/js/bootstrap.js");
 
-/**
- * Next, we will create a fresh React component instance and attach it to
- * the page. Then, you may begin adding components to this application
- * or customize the JavaScript scaffolding to fit your unique needs.
- */
-
+// Ensure the DOM is fully loaded before attaching event listeners
 document.addEventListener('DOMContentLoaded', function () {
-  window.Echo.channel('newsletters').listen('.NewsletterCreated', function (data) {
-    console.log('Received data:', data);
-    // Append new newsletter data to the list
-    var newsletterList = document.getElementById('newsletter-list');
-    var newItem = document.createElement('li');
-    newItem.innerHTML = "<strong>".concat(data.newsletter.title, "</strong>: ").concat(data.newsletter.content);
-    newsletterList.appendChild(newItem);
-  });
+  // Attach listeners only if the specific element is present
+  if (document.getElementById('newsletter-list')) {
+    window.Echo.channel('newsletters').listen('NewsletterCreated', function (e) {
+      var newsletterList = document.getElementById('newsletter-list');
+      var noNewslettersMessage = document.querySelector('#newsletter-list').previousElementSibling;
+
+      // Remove the "No newsletters found" message if it exists
+      if (noNewslettersMessage && noNewslettersMessage.tagName === 'LI' && noNewslettersMessage.textContent === 'No newsletters found.') {
+        noNewslettersMessage.remove();
+      }
+
+      // Check for existing entries to avoid duplicates
+      var existingItems = Array.from(newsletterList.getElementsByTagName('li'));
+      var isDuplicate = existingItems.some(function (item) {
+        return item.querySelector('h5').textContent === e.newsletter.title;
+      });
+      if (!isDuplicate) {
+        var li = document.createElement('li');
+        li.classList.add('newsletter-item');
+        li.innerHTML = "\n                        <img src=\"".concat(e.newsletter.image_url, "\" alt=\"Newsletter Image\" class=\"img-thumbnail\" width=\"150\">\n                        <div>\n                            <h5>").concat(e.newsletter.title, "</h5>\n                            <p>").concat(e.newsletter.content, "</p>\n                            <div class=\"timestamp\">").concat(new Date(e.newsletter.created_at).toLocaleString(), "</div>\n                        </div>");
+        newsletterList.prepend(li); // Prepend the new item
+      }
+    }).listen('NewsletterUpdated', function (e) {
+      var newsletterList = document.getElementById('newsletter-list');
+      var items = newsletterList.getElementsByTagName('li');
+      var _iterator = _createForOfIteratorHelper(items),
+        _step;
+      try {
+        for (_iterator.s(); !(_step = _iterator.n()).done;) {
+          var item = _step.value;
+          if (item.querySelector('h5').textContent === e.newsletter.title) {
+            item.querySelector('p').textContent = e.newsletter.content;
+            item.querySelector('.timestamp').textContent = new Date(e.newsletter.updated_at).toLocaleString();
+            if (e.newsletter.image_url) {
+              item.querySelector('img').src = e.newsletter.image_url;
+            }
+          }
+        }
+      } catch (err) {
+        _iterator.e(err);
+      } finally {
+        _iterator.f();
+      }
+    }).listen('NewsletterDeleted', function (e) {
+      var newsletterList = document.getElementById('newsletter-list');
+      var items = newsletterList.getElementsByTagName('li');
+      var _iterator2 = _createForOfIteratorHelper(items),
+        _step2;
+      try {
+        for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
+          var item = _step2.value;
+          if (item.querySelector('h5').textContent === e.newsletter.title) {
+            newsletterList.removeChild(item);
+          }
+        }
+
+        // If the list is empty after deletion, show the "No newsletters found" message
+      } catch (err) {
+        _iterator2.e(err);
+      } finally {
+        _iterator2.f();
+      }
+      if (!newsletterList.hasChildNodes()) {
+        var noNewslettersMessage = document.createElement('li');
+        noNewslettersMessage.textContent = 'No newsletters found.';
+        newsletterList.appendChild(noNewslettersMessage);
+      }
+    });
+  }
 });
 
 /***/ }),
